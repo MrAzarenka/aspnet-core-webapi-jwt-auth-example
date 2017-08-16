@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -54,7 +55,7 @@ namespace WebApiJwtAuthDemo
 
       // Get options from app settings
       var jwtAppSettingOptions = Configuration.GetSection(nameof(JwtIssuerOptions));
-
+            
       // Configure JwtIssuerOptions
       services.Configure<JwtIssuerOptions>(options =>
       {
@@ -62,15 +63,7 @@ namespace WebApiJwtAuthDemo
         options.Audience = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)];
         options.SigningCredentials = new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256);
       });
-    }
-
-    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-    {
-      loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-      loggerFactory.AddDebug();
-
-      var jwtAppSettingOptions = Configuration.GetSection(nameof(JwtIssuerOptions));
+            
       var tokenValidationParameters = new TokenValidationParameters
       {
         ValidateIssuer = true,
@@ -88,13 +81,19 @@ namespace WebApiJwtAuthDemo
         ClockSkew = TimeSpan.Zero
       };
 
-      app.UseJwtBearerAuthentication(new JwtBearerOptions
+      services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+      .AddJwtBearer(options =>
       {
-        AutomaticAuthenticate = true,
-        AutomaticChallenge = true,
-        TokenValidationParameters = tokenValidationParameters
+        options.TokenValidationParameters = tokenValidationParameters;
       });
+    }
 
+    // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+    {
+      loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+      loggerFactory.AddDebug();
+            
       app.UseMvc();
     }
   }
